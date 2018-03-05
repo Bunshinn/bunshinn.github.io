@@ -10,3 +10,15 @@
 
 * 支持度: 规则(商品组)在数据集中出现的次数. 通常可以简单地样本中符合规则的数目, 或者除以显著的数据总数以归一化. 
 * 置信度: 支持度衡量规则出现的频率, 置信度衡量规则应用的准确性. 用规则在数据集中出现的百分比. 先谋算规则的发生数, 然后除数样本总数.
+
+Applied:
+
+## 反欺诈(Fraud Detection)
+## 用记细分(Customer segmentation)
+## Software optimization
+## 商品推荐(Product recommendations)
+
+决策树(Decision Tree)
+=========================
+
+
