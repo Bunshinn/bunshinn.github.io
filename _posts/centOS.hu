@@ -1,0 +1,619 @@
+centOS
+
+[//]: # (ip:
+122.112.203.137
+101.132.179.210
+
+45.64.113.35
+139.199.203.22)
+
+
+[TOC]
+
+目录:
+
+云服务器配置:
+	一. 挂载数据盘
+	二. 安装ftp
+	三. 安装mysql
+	四. 安装apache
+	五. 安装php
+	六. 安装python3
+	七. 安装java
+putty设置
+常用命令
+
+=========================================================================
+参考原文:http://www.mayanpeng.cn/?p=507
+
+##一.挂载数据盘
+
+查看
+$ fdisk -l
+
+分区
+$ fdisk /dev/sdd
+n->p->1->回车->回车->w
+意思就是新建一个主分区，大小是整个sdd磁盘
+
+查看分区是否正常及分区名称,用于后续格式化
+$ fdisk -l 
+
+格式化
+mkfs.ext3 /dev/sdd1
+
+挂载新硬盘到操作系统的某个节点上
+$ mkdir /mnt/sdd
+$ mount /dev/sdd1 /mnt/sdd
+
+df命令查看磁盘信息，确认挂载新硬盘成功
+$ df	-hl 查看空间使用情况
+------------------------------------------------
+
+##二.安装ftp
+
+1.安装ftp，使用yum命令， 
+$ yum install vsftpd -y
+
+2.用cd和ls命令检查nologin的位置，通常在/usr/sbin/nologin 或者/sbin/nologin
+3.增加账户及根目录
+$ useradd -d /bs/web -s /sbin/nologin ftpadmin 
+--增加账户，其中/mydata/myweb为你的ftp目录，ftpadmin为你的ftp用户名。
+$ passwd ftpadmin 输入密码
+
+4.修改配置
+$ chown -R ftpadmin/ftpadmin /bs/web/www --修改权限
+$ vi /etc/vsftpd/vsftpd.conf
+--vi命令编辑ftp的配置文件，以下几项修改或取消注释:
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+chroot_local_user=YES
+
+5.修改shell配置
+vi编辑/etc/shells，如果该文件里没有/usr/sbin/nologin或者/sbin/nologin（具体看当前系统配置）则追加进去
+
+6.启动vsftp服务并测试登录,使用命令启动vsftp服务：
+$ service vsftpd start
+-- service vsftpd restart     //重新启动ftp服务器 
+然后用帐号ftpadmin测试下是否可以登陆ftp。
+
+7. ftp默认文件解析及修改目录--
+如果是默认安装vsftpd的话，以下是一些文件的位置约定：
+/usr/sbin/vsftpd —- VSFTPD的主程序
+/etc/rc.d/init.d/vsftpd —- 启动脚本
+/etc/vsftpd/vsftpd.conf —- 主配置文件
+/etc/pam.d/vsftpd —- PAM认证文件
+/etc/vsftpd.ftpusers —- 禁止使用VSFTPD的用户列表文件
+/etc/vsftpd.user_list —- 禁止或允许使用VSFTPD的用户列表文件
+/var/ftp —- 匿名用户主目录
+/var/ftp/pub —- 匿名用户的下载目录
+
+如果要更改默认下载目录，修改/etc/vsftpd/vsftpd.conf，加入如下三行：
+local_root=/
+chroot_local_user=YES
+anon_root=/
+
+local_root表示使用本地用户登录到ftp时的默认目录
+anon_root表示匿名用户登录到ftp时的默认目录
+
+你上面的chroot_list_file是设定锁定登陆用户在其home目录的列表，要在chroot_list_enable=YES情况下才生效。
+
+修改路径后, 发生如下情况:
+使用客户端，可以正常的连接，但是当上传文件时，总是报553 Could not create file错误信息。
+需对/mydata/myweb(修改后路径)目录进行权限设置，如设置为chmod -R 777 /mydata/myweb
+设置权限为777
+$sudo chmod -R 777 /mydata/myweb
+
+vsftpd：500 OOPS: vsftpd: refusing to run with writable root inside chroot ()错误
+从2.3.5之后，vsftpd增强了安全检查，如果用户被限定在了其主目录下，则该用户的主目录不能再具有写权限了！如果检查发现还有写权限，就会报该错误。
+ 要修复这个错误，可以用命令chmod a-w /home/user去除用户主目录的写权限，注意把目录替换成你自己的。或者你可以在vsftpd的配置文件中增加下列两项中的一项：
+allow_writeable_chroot=YES 
+
+FTP服务器的默认目录是/var/ftp，而且当用户以匿名方式登录的时候，访问就是此目录。如果用户以其它的用户名登录的话，访问的则是那个用户名的工作目录。如果想要更改非匿名用户的默认FTP目录，可以采用如下方式进行更改：
+1、进入/etc目录，打开passwd文件
+2、转到想要更改的那个用户的行，编辑其工作目录为想要的目录即可
+
+一般采用此种方式带来的一个影响就是，shell的提示符不会再显示目录信息，如果想要变回原来的样子，可以采用如下简便的方法：把那个用户原来的工作目录下的所有与shell配置相关的文件复制到更改后的目录。
+
+--------------------------------------------------------------------
+
+##三.安装mysql
+
+1. 查看是否已安装
+$ yum list installed |grep mysql
+
+2. 如已安装, 卸载之
+$ yum -y remove mysql-libs.x86_64
+or
+$ yum -y remove mysql-libs-5.1.73*
+3. 安装mysql
+3.1 查看mysql版本
+$ yum list | grep mysql 或 yum -y list mysql*
+
+3.2 使用本地安装
+3.2.1 官网下载rpm 安装包
+$ wget https://cdn.mysql.com//Downloads/MySQL-5.6/MySQL-5.6.35-1.linux_glibc2.5.x86_64.rpm-bundle.tar
+3.2.2 使用tar命令解压
+tar xvf mysql包名
+3.2.3 解压后,顺序安装下面server, client, devel文件:
+[root@localhost  ~]# rpm -ivh MySQL-server-5.6.35-1.linux_glibc2.5.x86_64.rpm --nodeps --force
+[root@localhost  ~]# rpm -ivh MySQL-client-5.6.35-1.linux_glibc2.5.x86_64.rpm
+[root@localhost  ~]# rpm -ivh MySQL-devel-5.6.35-1.linux_glibc2.5.x86_64.rpm
+安装完成
+
+/usr/sbin/mysqld
+/usr/my-new.cnf
+/usr/bin/mysql_secure_installation
+
+3.3 启动服务
+[root@localhost ~]# service mysql start
+提示mysql成功启动，则安装完成 , 因为mysql 首次登录必须修改密码所以请看下面.
+
+3.4 修改密码
+3.4.1 默认安装时会随机给ROOT用户生成一个密码保存在安装用户目录下/root/.mysql_secret中
+3.4.2 首次登录修改密码
+[root@localhost ~]# mysql -u root -p
+输入.mysql_secret 密码 登录成功后 , 执行 
+mysql > SET PASSWORD = PASSWORD('newpasswd');
+这样首次登录修改密码就成功了,下次登录就用上面语句中的密码
+
+3.4.3后面还想修改密码就用下面的语句:
+[root@localhost ~]# use mysql; 
+[root@localhost ~]# update user set password=password('新密码') where user='root';
+[root@localhost ~]# FLUSH PRIVILEGES; (刷新权限)
+[root@localhost ~]# quit;  
+
+3.5 配置远程访问
+
+用刚才设置的密码登录
+[root@localhost ~]#  mysql -u root -p
+
+登录成功后:lO*oo?aDt3rW
+
+3.5.1 用root从任何主机连接到mysql服务器
+mysql > GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'password' WITH GRANT OPTION;flush privileges;
+添加用户:
+GRANT USAGE ON *.* TO 'hu'@'localhost' IDENTIFIED BY '123456' WITH GRANT OPTION;
+
+3.5.2 用root从192.168.1.16主机连接到mysql服务器
+mysql > GRANT ALL PRIVILEGES ON *.* TO 'root'@'192.168.1.16' IDENTIFIED BY '123456' WITH GRANT OPTION;flush privileges;
+`--*.* 指 数据库.表 所以*.* 为所有数据库和表.`
+'root' @'%' 为所有主机.
+IDENTIFIED BY '123456' 为远程登录的密码.
+
+
+4. 迁移
+4.1 由于mysql中的数据是不断增长的，我们需要把mysql目录迁移到数据盘。
+迁移前要把数据库先关闭。命令
+service mysql stop
+4.2 创建并进入需要迁入的目录
+cp -r /var/lib/mysql/* /mydata/mysql
+chown -R mysql:mysql /mydata/mysql/
+
+find / -name my.cnf 查看现有配置, 将现有配置设置datadir后, 另存为/etc/my.cnf, 启动服务.
+
+原理如下:
+常用的配置文件路径
+ 文件名	作用
+/etc/my.cnf				Global options
+/etc/mysql/my.cnf		Global options (as of MySQL 5.1.15)
+SYSCONFDIR/my.cnf		Global options
+$MYSQL_HOME/my.cnf		Server-specific options
+defaults-extra-file		The file specified with--defaults-extra-file=path  
+~/my.cnf	User-specific options
+在没有添加任何启动命令的时候，mysql会默认的依次从上到下检查配置文件是否存在，使用第一个发现的文件作为启动文件。因此在启动mysqld的时候，一定要确定好上述的路径下是否有对应的配置文件，避免加载了错误的文件，导致一些奇怪的问题。当然，如果不想使用默认加载顺序中的配置文件，可以在启动命令上增加 --defaults-file='path/to/my.cnf'来指定要使用的配置文件
+
+参考网文:http://blog.csdn.net/chenpy/article/details/47046113
+
+5. 指定目录方式安装失败.
+rpm -ivh --prefix=/mydata/mysql  MySQL-server-5.6.17-1.el6.x86_64.rpm
+
+6. CentOS 7下MySQL 5.7安装
+wget https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-linux-glibc2.12-x86_64.tar
+tar xvf mysql-5.7.19-linux-glibc2.12-x86_64.tar
+
+建立用户mysql，组mysql。后面mysql就使用这个用户来运行（注意这也是mysql启动脚本中默认的用户，因此最好不要改名）。
+`#groupadd mysql`
+`#useradd -r -g mysql mysql`
+（使用-r参数表示mysql用户是一个系统用户，不能登录）
+ 
+-----------------------------------------------------------------------
+
+##四. 安装apache
+
+使用 yum install httpd 命令安装apache
+运行命令chkconfig –level 235 httpd on使Apache可以自动启动，命令chkconfig –list 查看自动运行设置是否成功 。
+并运行命令/etc/init.d/httpd start立刻启动Apache
+
+设置默认路径
+编辑/etc/httpd/conf/httpd.conf 中DocumentRoot 属性
+
+重启
+service httpd restart  #stop
+
+启动时提示:httpd: Could not reliably determine the server's fully qualified domain name, using 45.64.113.35 for ServerName
+解决方案, 打开配置文件
+vi /etc/httpd/conf/httpd.conf   
+找到ServerName取消注释, 可添加:ServerName  localhost:80
+
+##五. 安装php
+
+1. 安装
+yum install php
+
+2. 安装php-mysql等包使PHP支持MySQL，
+命令如下：运行命令yum search php来查找可用的PHP模块包，选择所需要的包并运行命令yum install php-mysql php-gd php-imap php-ldap php-odbc php-pear php-xml php-xmlrpc 来安装（可不限于本例中的包）
+
+3. 启动服务
+service httpd restart 重启服务
+
+4. 测试
+新建一个php文件把写入下面代码，上传到服务器的/var/www/html目录下，然后访问服务器ip看到如下网页说说明至此全部安装成功
+----------------------------------------------------------
+
+##六. 安装python3
+
+1. 下载安装
+wget https://www.python.org/ftp/python/3.4.6/Python-3.4.6rc1.tgz
+yum -y install gcc #编译不通过时安装
+tar zxvf python3文件名 ##解压缩
+cd Python-3.4.6rc1 ##进入目录
+./configure --prefix=/mydata/python/ #设置默认安装目录
+make
+make install ## make && make install --两命令合并
+
+2. 配置 系统仍默认使用旧版
+mv /usr/bin/python /usr/bin/python_old --备份, 后可将爱到影响的程序指向该文件
+创建新link
+sudo ln -s /mydata/mython/bin/python3.4 /usr/bin/python
+
+export PYTHONHOME=/mydata/python
+export PATH=$PYTHONHOME/bin/python3.4
+
+3. 引发问题:
+yum采用Python作为命令解释器，这可以从/usr/bin/yum文件中第一行#!/usr/bin/python发现。2.X版本与3.0版本之间存在语法不一致问题。而CentOS 自带的yum采用的是python2.X，当系统将python升级后，出现语法解释错误。
+解决办法：
+很简单，一是升级yum，一是修改yum的解释器为旧版本python2.4（如果你没有采用覆盖升级的话）。
+升级yum的作法就不详述了。修改yum的解释器为旧版本python2.4：
+$ vi /usr/bin/yum
+将第一行"#!/usr/bin/python" 改为 "#!/usr/bin/python_old"即可。
+
+4. pip安装问题
+安装zlib
+`#rpm -qa | grep zlib `
+`#yum -y install zlib* `
+
+4.1、安装依赖zlib、zlib-devel
+4.2、重新编译安装Python
+./configure 
+编辑Modules/Setup文件 
+找到下面这句，去掉注释 
+`#zlib zlibmodule.c -I$(prefix)/include -L$(exec_prefix)/lib -lz `
+重新编译安装：make & make install 
+
+报错:Ignoring ensurepip failure: pip 9.0.1 requires SSL/TLS
+安装:yum -y install openssl openssl-devel
+如不成功, 尝试本地安装, 如下
+进入pip目录安装pip:
+/usr/lib/src/下wget https://bootstrap.pypa.io/get-pip.py
+python get-pip.py
+
+##七. 安装java环境
+
+安装至指定目录
+1. 卸载已安装
+yum remove **
+2. 指定目录本地安装
+rpm -ivh --prefix=/usr/local/java jdk-8u25-linux-x64.rpm
+
+3. 配置环境变量
+"/etc/profile"文件，在后面添加Java的"JAVA_HOME"、"CLASSPATH"以及"PATH"内容
+`# set java environment
+export JAVA_HOME=/usr/jdk1.8.0_161
+export CLASSPATH=.:$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib
+export PATH=$PATH:$JAVA_HOME/bin:$JAVA_HOME/jre/bin
+
+执行下面命令使其配置立即生效。
+source /etc/profile
+=========================================================================
+
+##putty设置
+--------
+使用PuTTY远程登录CentOS断线解决办法！
+编辑CentOS的/etc/ssh/sshd_config文件，输入命令：
+vi /etc/ssh/sshd_config，打开后，更新如下设置：
+`#TCPKeepAlive yes
+`#ClientAliveInterval 0
+
+去掉前面的#号，并将ClientAliveInterval 后面的值 0 改为3.
+重启sshd
+/etc/init.d/sshd restart
+----------
+
+
+
+hadoop & spark
+http://mirror.bit.edu.cn/apache/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
+http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz
+https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-2.7.4/hadoop-2.7.4.tar.gz
+https://mirrors.tuna.tsinghua.edu.cn/apache/hive/hive-2.2.0/apache-hive-2.2.0-bin.tar.gz
+
+
+
+ 
+
+
+
+
+
+##hadoop安装配置
+
+1. 网络配置
+
+1.1 机器名称
+hostname 查看机器名称
+
+1.2 修改当前机器名称 
+假定我们发现我们的机器的主机名不是我们想要的，通过对"/etc/sysconfig/network"文件修改其中"HOSTNAME"后面的值，改成我们规划的名称。
+　　这个"/etc/sysconfig/network"文件是定义hostname和是否利用网络的不接触网络设备的对系统全体定义的文件。
+　　设定形式：设定值=值
+　　"/etc/sysconfig/network"的设定项目如下：
+ 
+NETWORKING 是否利用网络
+GATEWAY 默认网关
+IPGATEWAYDEV 默认网关的接口名
+HOSTNAME 主机名
+DOMAIN 域名
+ 
+　　用下面命令进行修改当前机器的主机名（备注：修改系统文件一般用root用户）
+ 
+vim /etc/sysconfig/network
+ 
+通过上面的命令我们从"/etc/sysconfig/network"中找到"HOSTNAME"进行修改，查看内容如下：
+
+1.3 修改当前机器IP
+
+1.4 配置hosts文件（必须）
+/etc/hosts 追加各机器ip及名称
+机器为"Master.Hadoop:192.168.1.2"对机器为"Salve1.Hadoop:192.168.1.3"用命令"ping"记性连接测试
+
+
+2.1 安装和启动SSH协议
+需要两个服务：ssh和rsync已经安装了。可以通过下面命令查看结果显示如下：
+rpm –qa | grep openssh
+rpm –qa | grep rsync
+
+假设没有安装ssh和rsync，可以通过下面命令进行安装。
+yum install ssh 安装SSH协议
+yum install rsync （rsync是一个远程数据同步工具，可通过LAN/WAN快速同步多台主机间的文件）
+service sshd restart 启动服务
+
+hadoop试例运行
+
+1.copy打包文件至hadoop目录下
+2.copy源文件至hdfs文件系统内
+	hadoop fs -put sample.txt /
+3.执行
+export HADOOP_CLASSPATH=MaxTemp.jar
+hadoop bunshinn.cn.MaxTemperature /sample.txt output10
+
+4.查看结果
+hadoop fs -cat output10/*
+参考:http://blog.csdn.net/jediael_lu/article/details/37596469#
+
+5.停止运行hadoop
+./sbin/stop-all.sh
+
+
+
+##hive
+
+  $ $HADOOP_HOME/bin/hadoop fs -mkdir       /tmp
+  $ $HADOOP_HOME/bin/hadoop fs -mkdir       /user/hive/warehouse
+  $ $HADOOP_HOME/bin/hadoop fs -chmod g+w   /tmp
+  $ $HADOOP_HOME/bin/hadoop fs -chmod g+w   /user/hive/warehouse
+
+./bin/schematool -initSchema -dbType mysql
+
+启动hadoop后运行hive时出现如下错误。
+     Exception in thread "main"java.lang.RuntimeException: java.lang.RuntimeException: The root scratch dir:/tmp/hive on HDFS should be writable.
+     Current permissions are: rwxr-xr-x
+错误修改。
+使用hadoop fs hadoop fs -chmod -R dir修改目录权限，如下 
+[root@hadoop22 ~]# hadoop fs -chmod -R 777 /tmp
+使其他用户也具备本目录的写权限
+     
+
+
+5.7和之前版本的MySQL有一些不同，现把CentOS 7下MySQL 5.7安装、配置与应用完整过程记下来，或许对新手来说有用。
+本文描述的安装是采用通用的二进制压缩包（linux - Generic）以解压方式安装，相当于绿色安装了。
+
+一、下载通用安装二进制包
+先下载mysql安装包：打开 http://dev.mysql.com/downloads/mysql/
+选择 linux - Generic并在其下选择
+Linux - Generic (glibc 2.5) (x86, 64-bit), Compressed TAR Archive
+进行下载。可以先下载到一个临时目录里，解压后，得到两个包：
+mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz 
+mysql-test-5.7.11-linux-glibc2.5-x86_64.tar.gz
+只需要mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz 这个包就行了。
+ 
+二、建立用户和目录
+建立用户mysql，组mysql。后面mysql就使用这个用户来运行（注意这也是mysql启动脚本中默认的用户，因此最好不要改名）。
+#groupadd mysql
+#useradd -r -g mysql mysql
+（使用-r参数表示mysql用户是一个系统用户，不能登录）
+建立目录/work/program，后面mysql就安装在这个目录下面。
+#mkdir /work/program
+ 
+三、安装
+【解压】
+将前面得到的mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz解压至/work/program目录下
+#tar zxvf mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz -C /work/program
+这时在program下得到的目录名很长，如果不想改名，则可以建立一个联接：
+#ln -s mysql-5.7.11-linux-glibc2.5-x86_64 mysql
+此后就可以用/work/program/mysql来找到mysql的安装目录了
+注意，如果mysql目录下没有data目录，手动建一个。
+
+【目录权限设置】
+将mysql及其下所有的目录所有者和组均设为mysql:
+#cd /work/program/mysql
+#chown mysql:mysql -R .
+ 
+【初始化】
+#/work/program/mysql/bin/mysqld --initialize --user=mysql --datadir=/work/program/mysql/data --basedir=/work/program/mysql
+注意：
+1. data目录解压后没有，需要手动建立（见上文）；
+2. mysql5.7和之前版本不同，很多资料上都是这个命令
+...../scripts/mysql_install_db --user=mysql
+ 而5.7版本根本没有这个。
+
+如提示:./bin/mysqld: error while loading shared libraries: libaio.so.1: cannot open shared object file: No such file or directory
+则安装相应包:
+yum install -y libaio
+
+初始化成功后出现如下信息：
+201x-xx-xxT07:10:13.583130Z 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+201x-xx-xx T07:10:13.976219Z 0 [Warning] InnoDB: New log files created, LSN=45790
+201x-xx-xx T07:10:14.085666Z 0 [Warning] InnoDB: Creating foreign key constraint system tables.
+201x-xx-xx T07:10:14.161899Z 0 [Warning] No existing UUID has been found, so we assume that this is the first time that this server has been started. Generating a new UUID: 1fa941f9-effd-11e5-b67d-000c2958cdc8.
+201x-xx-xx T07:10:14.165534Z 0 [Warning] Gtid table is not ready to be used. Table 'mysql.gtid_executed' cannot be opened.
+201x-xx-xx T07:10:14.168555Z 1 [Note] A temporary password is generated for root@localhost: q1SLew5T_6K,
+ 
+注意最后一行，这也是和之有版本不同的地方，它给了root一个初始密码，后面要登录的时候要用到这个密码。
+
+
+2018-01-07T12:44:01.602056Z 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2018-01-07T12:44:03.663016Z 0 [Warning] InnoDB: New log files created, LSN=45790
+2018-01-07T12:44:03.895367Z 0 [Warning] InnoDB: Creating foreign key constraint system tables.
+2018-01-07T12:44:04.002203Z 0 [Warning] No existing UUID has been found, so we assume that this is the first time that this server has been started. Generating a new UUID: 715c57a0-f3a8-11e7-9c2e-00163e043823.
+2018-01-07T12:44:04.020751Z 0 [Warning] Gtid table is not ready to be used. Table 'mysql.gtid_executed' cannot be opened.
+2018-01-07T12:44:04.021464Z 1 [Note] A temporary password is generated for root@localhost: N(o!(cDMu2+%
+
+【配置】
+将mysql/support-files下的my-default.cnf改名为my.cnf，拷到/etc下（或者考到｛mysql｝下，然后作一个软链接到/etc下）：
+#cp /work/program/mysql/support-files/my-default.cnf /etc/my.cnf
+my.cnf中关键配置：
+[mysqld]
+basedir = /work/program/mysql
+datadir = /work/program/mysql/data
+port = 3306
+socket = /work/program/mysql/tmp/mysql.sock
+ 
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+ 
+注意，tmp目录不存在，请创建之。
+ 
+如果不把my.cnf拷到/etc下，运行时会出现：
+mysqld: Can't change dir to '/usr/local/mysql/data/' (Errcode: 2 - No such file or directory)
+这样的出错提示，说明它没找到my.cnf中的配置；而去找了程序编译时的默认安装位置：/usr/local/mysql
+ 
+四、运行
+【运行服务器程序】
+#{mysql}/bin/mysqld_safe&
+注：在这个启动脚本里已默认设置--user=mysql；在脚本末尾加&表示设置此进程为后台进程，区别就是在控制台输入bg，即可将当前进程转入后台，当前shell可进行其他操作。
+【停止mysql】
+{mysql}/bin/mysqladmin -uroot -p
+(注意此时的root是指mysql的root用户)
+ 
+五、设置mysql以服务运行并且开机启动
+ 
+将{mysql}/ support-files/mysql.server 拷贝为/etc/init.d/mysql并设置运行权限
+ 
+#cp mysql.server /etc/init.d/mysql
+#chmod +x /etc/init.d/mysql
+ 
+把mysql注册为开机启动的服务
+#chkconfig --add mysql
+ 
+当然也可以手动进行服务的开启和关闭：
+#/etc/init.d/mysql start
+#/etc/init.d/mysql stop
+
+六、客户端连接测试
+
+#{mysql}/bin/mysql -uroot -p
+此时要求输入密码，就是前面初始化时生成的密码。
+这时如果连接服务的时候出现错误：
+ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)
+则需要在在my.cnf中填加：
+[client]
+socket = /work/program/mysql/tmp/mysql.sock
+ 
+连上后，在做任何操作前，mysql要求要改掉root的密码后才能进行操作。
+ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.
+mysql> alter user 'root'@'localhost' identified by 'xxxxxxx';
+ 
+七、TIPS
+ 
+【查看mysql是否运行】
+ps -ef|grep mysqld
+netstat -lnp | grep -i mysql
+ 
+【mysql启动时读取配置文件my.cnf的顺序】
+可以运行如下命令查看：
+./bin/mysqld --verbose --help |more
+Default options are read from the following files in the given order:
+/etc/my.cnf /etc/mysql/my.cnf /usr/local/mysql/etc/my.cnf ~/.my.cnf
+可以看到，启动时可以从上述目录下读取配置文件my.cnf。如果当前my.cnf文件不位于上述位置，则必须考过去或做链接。
+
+##http://www.linuxidc.com/Linux/2016-04/130414.htm
+
+
+
+
+##Ngix
+/usr/local/nginx/sbin/nginx               #开启服务
+/usr/local/nginx/sbin/nginx -s stop       #停止nginx
+修改配置差重载生效
+vi /usr/local/nginx/conf/nginx.conf
+/usr/local/nginx/sbin/nginx -s reload  应用新配置
+
+
+运行pyweb项目语句
+spawn-fcgi -d /bs/web/pyweb -f /bs/web/pyweb/blog.py -a 127.0.0.1 -p 9002
+spawn-fcgi -d /bs/web -f /bs/web/run.py -a 127.0.0.1 -p 9002
+spawn-fcgi -d /bs/web -f /bs/web/manage.py -a 127.0.0.1 -p 9002
+查看是否运行
+ps aux|grep blog.py 检查应用程序是否运行
+结束进程
+kill 进程id
+
+#!/bin/sh
+kill `pgrep -f "python /bs/web/pyweb/blog.py"`
+
+spawn-fcgi -d /bs/web/www/test -f /bs/web/www/test/index.py -a 127.0.0.1 -p 9002
+
+
+
+9000端口被占用, port 改为9001 修改下面两个设置文件
+/usr/local/php/etc/php-fpm.conf
+/usr/local/etc/php-fpm.d/www.conf
+/usr/local/php/sbin/php-fpm
+/usr/local/php/sbin/php-fpm restart
+
+cp /root/php-5.6.2/php.ini-development /usr/local/php/lib/php.ini
+
+需加上模块名称如: --with-mysqli为mysqli模块
+./configure --prefix=/usr/local/php --with-config-file-path=/usr/local/php/etc --enable-fpm --enable-mbstring --disable-pdo --with-curl --disable-debug --disable-rpath --enable-inline-optimization --with-bz2 --with-zlib --enable-sockets --enable-sysvsem --enable-sysvshm --enable-pcntl --enable-mbregex --with-mhash --enable-zip --with-pcre-regex --with-mysql --with-mysqli --with-gd --with-jpeg-dir
+
+-with-fpm-user=php-fpm --with-fpm-group=php-fpm
+ /usr/local/php/lib/php to your php.ini include_path
+/root/php-5.6.2/build/shtool install -c ext/phar/phar.phar /usr/local/php/bin
+ln -s -f /usr/local/php/bin/phar.phar /usr/local/php/bin/phar
+Installing PDO headers:          /usr/local/php/include/php/ext/pdo/
+
+ netstat -ntlp | grep 9001  
+
+./configure –prefix=/usr/local/php –with-php-config=/usr/local/php/bin/php-config–with-mysqli=/bs/mysql/bin/mysql_config
+extension=/usr/lib64/php/modules/mysqli.so
+
+
+nohup python3 manage.py runserver -h 127.0.0.1 -p 5001 &
+spawn-fcgi -d /bs/web -f /bs/web/manage.py -a 127.0.0.1 -p 9002
+
+
+spawn-fcgi -d /bs/web -f /bs/web/manage.py -a 127.0.0.1 -p 9002
+
+
+事务特性ACID: 原子 一致 隔离 持久
