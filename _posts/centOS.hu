@@ -1,11 +1,6 @@
 centOS
 
-[//]: # (ip:
-122.112.203.137
-101.132.179.210
-
-45.64.113.35
-139.199.203.22)
+[//]: # (ip:122.112.203.137/101.132.179.210)
 
 
 [TOC]
@@ -23,8 +18,9 @@ centOS
 putty设置
 常用命令
 
-=========================================================================
-参考原文:http://www.mayanpeng.cn/?p=507
+=========================================================================  
+
+[参考原文](http://www.mayanpeng.cn/?p=507)
 
 ##一.挂载数据盘
 
@@ -423,7 +419,6 @@ hadoop fs -cat output10/*
 使用hadoop fs hadoop fs -chmod -R dir修改目录权限，如下 
 [root@hadoop22 ~]# hadoop fs -chmod -R 777 /tmp
 使其他用户也具备本目录的写权限
-     
 
 
 5.7和之前版本的MySQL有一些不同，现把CentOS 7下MySQL 5.7安装、配置与应用完整过程记下来，或许对新手来说有用。
@@ -440,28 +435,28 @@ mysql-test-5.7.11-linux-glibc2.5-x86_64.tar.gz
  
 二、建立用户和目录
 建立用户mysql，组mysql。后面mysql就使用这个用户来运行（注意这也是mysql启动脚本中默认的用户，因此最好不要改名）。
-#groupadd mysql
-#useradd -r -g mysql mysql
+$ groupadd mysql
+$ useradd -r -g mysql mysql
 （使用-r参数表示mysql用户是一个系统用户，不能登录）
 建立目录/work/program，后面mysql就安装在这个目录下面。
-#mkdir /work/program
+$ mkdir /work/program
  
 三、安装
 【解压】
 将前面得到的mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz解压至/work/program目录下
-#tar zxvf mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz -C /work/program
+$ tar zxvf mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz -C /work/program
 这时在program下得到的目录名很长，如果不想改名，则可以建立一个联接：
-#ln -s mysql-5.7.11-linux-glibc2.5-x86_64 mysql
+$ ln -s mysql-5.7.11-linux-glibc2.5-x86_64 mysql
 此后就可以用/work/program/mysql来找到mysql的安装目录了
 注意，如果mysql目录下没有data目录，手动建一个。
 
 【目录权限设置】
 将mysql及其下所有的目录所有者和组均设为mysql:
-#cd /work/program/mysql
-#chown mysql:mysql -R .
+$ cd /work/program/mysql
+$ chown mysql:mysql -R .
  
 【初始化】
-#/work/program/mysql/bin/mysqld --initialize --user=mysql --datadir=/work/program/mysql/data --basedir=/work/program/mysql
+$ /work/program/mysql/bin/mysqld --initialize --user=mysql --datadir=/work/program/mysql/data --basedir=/work/program/mysql
 注意：
 1. data目录解压后没有，需要手动建立（见上文）；
 2. mysql5.7和之前版本不同，很多资料上都是这个命令
@@ -492,7 +487,7 @@ yum install -y libaio
 
 【配置】
 将mysql/support-files下的my-default.cnf改名为my.cnf，拷到/etc下（或者考到｛mysql｝下，然后作一个软链接到/etc下）：
-#cp /work/program/mysql/support-files/my-default.cnf /etc/my.cnf
+$ cp /work/program/mysql/support-files/my-default.cnf /etc/my.cnf
 my.cnf中关键配置：
 [mysqld]
 basedir = /work/program/mysql
@@ -510,7 +505,7 @@ mysqld: Can't change dir to '/usr/local/mysql/data/' (Errcode: 2 - No such file 
  
 四、运行
 【运行服务器程序】
-#{mysql}/bin/mysqld_safe&
+$ {mysql}/bin/mysqld_safe&
 注：在这个启动脚本里已默认设置--user=mysql；在脚本末尾加&表示设置此进程为后台进程，区别就是在控制台输入bg，即可将当前进程转入后台，当前shell可进行其他操作。
 【停止mysql】
 {mysql}/bin/mysqladmin -uroot -p
@@ -520,19 +515,19 @@ mysqld: Can't change dir to '/usr/local/mysql/data/' (Errcode: 2 - No such file 
  
 将{mysql}/ support-files/mysql.server 拷贝为/etc/init.d/mysql并设置运行权限
  
-#cp mysql.server /etc/init.d/mysql
-#chmod +x /etc/init.d/mysql
+$ cp mysql.server /etc/init.d/mysql
+$ chmod +x /etc/init.d/mysql
  
 把mysql注册为开机启动的服务
-#chkconfig --add mysql
+$ chkconfig --add mysql
  
 当然也可以手动进行服务的开启和关闭：
-#/etc/init.d/mysql start
-#/etc/init.d/mysql stop
+$ /etc/init.d/mysql start
+$ /etc/init.d/mysql stop
 
 六、客户端连接测试
 
-#{mysql}/bin/mysql -uroot -p
+$ {mysql}/bin/mysql -uroot -p
 此时要求输入密码，就是前面初始化时生成的密码。
 这时如果连接服务的时候出现错误：
 ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)
@@ -579,7 +574,7 @@ ps aux|grep blog.py 检查应用程序是否运行
 结束进程
 kill 进程id
 
-#!/bin/sh
+\#!/bin/sh
 kill `pgrep -f "python /bs/web/pyweb/blog.py"`
 
 spawn-fcgi -d /bs/web/www/test -f /bs/web/www/test/index.py -a 127.0.0.1 -p 9002
