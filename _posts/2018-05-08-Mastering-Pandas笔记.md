@@ -8,3 +8,5 @@ Pandas 笔记
 ```
 df.drop(colname)
 ```
+
+df1.add(df2, fill_value=0)
