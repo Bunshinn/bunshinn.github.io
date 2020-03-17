@@ -28,6 +28,11 @@ markdown: kramdown
 theme: minima
 gems:
   - jekyll-feed
+  - jekyll-mermaid
+
 exclude:
   - Gemfile
   - Gemfile.lock
+
+mermaid:
+  src: '/assets/js/mermaid.min.js'
