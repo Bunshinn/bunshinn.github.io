@@ -29,6 +29,7 @@ theme: minima
 gems:
   - jekyll-feed
   - jekyll-mermaid
+  - jekyll-paginate
 
 exclude:
   - Gemfile
@@ -36,3 +37,7 @@ exclude:
 
 mermaid:
   src: '/assets/js/mermaid.min.js'
+
+
+paginate:10
+paginate_path: "page:num"
